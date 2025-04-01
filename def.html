@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SÜLÜCASE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1e1e1e;
+            color: white;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .cases {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .case {
+            width: 150px;
+            height: 150px;
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .case:hover {
+            transform: scale(1.1);
+        }
+        .balance {
+            margin-top: 20px;
+            font-size: 20px;
+            color: lightgreen;
+        }
+        .inventory {
+            margin-top: 30px;
+            color: lightblue;
+        }
+        .case-opening-container {
+            position: relative;
+            width: 400px;
+            height: 120px;
+            overflow: hidden;
+            margin: 20px auto;
+            background-color: black;
+            border: 2px solid yellow;
+            border-radius: 10px;
+        }
+        .case-items {
+            display: flex;
+            position: absolute;
+            left: 0;
+            transition: transform 5s ease-out; /* 5 saniye olarak değiştirildi */
+        }
+        .case-item {
+            width: 100px;
+            height: 100px;
+            background-size: cover;
+            background-position: center;
+            margin: 10px;
+        }
+        .marker {
+            position: absolute;
+            width: 2px;
+            height: 120px;
+            background-color: red;
+            left: 50%;
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SÜLÜCASE</h1>
+        <div class="balance" id="balance">Bakiye: 100</div>
+        <div class="cases">
+            <div class="case" id="case1" style="background-image: url('https://www.csgodatabase.com/images/cases/Dreams_and_Nightmares_Case.png');" onclick="openCase(20, 'case1')"></div>
+        </div>
+        <div class="case-opening-container">
+            <div class="case-items" id="case-items"></div>
+            <div class="marker"></div>
+        </div>
+        <div class="result" id="result"></div>
+        <div class="inventory" id="inventory">
+            <h2>Envanterim</h2>
+        </div>
+    </div>
+
+    <audio id="open-case-sound" src="case.mp4" preload="auto"></audio>
+
+    <script>
+        let balance = 100;
+        let inventory = [];
+
+        const cases = {
+            "case1": [
+                { name: "AWP | Dragon Lore", price: 200, img: "https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot621FAR17P7NdTRH-t26q4SZlvD7PYTQgXtu5cB1g_zMu9zw3g2yrkVtZ2r6IoSVdAU-ZVrY_lS6lb_ogsDqu57NmCQ27iJx53nD30vgUTXWscs", weight: 0.5 },
+                { name: "AK-47 | Redline", price: 50, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpot7HxfDhjxszJemkV09-5lpKKqPrxN7LEmyVS7cYg3LuT94qm21GyqUpsa2j7IIDDJwI7YwvRrFi7lOa5hpfpvs_A1zI97fpmYHCU/360fx360f", weight: 4 },
+                { name: "M4A4 | Asiimov", price: 70, img: "https://community.cloudflare.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhjxszFJQJD_9W7m5a0mvLwOq7c2GpQ7JMg0uyYoYin2wHj-kU6YGD0cYOUcFA9YFnS_AC9xeq508K0us7XiSw0vgXM_Rw/330x192", weight: 4 },
+                { name: "Glock-18 | Fade", price: 5, img: "https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgposbaqKAxf0vL3dzxG6eO6nYeDg7n1a-6GkDoC7pMp3rGYpNqiiQ23-UM5ZT-hcIeQJgZsMFvR_lTox7i-m9bi6-pjfulG/360fx360f", weight: 4 },
+                { name: "USP-S | Orion", price: 25, img: "https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpoo6m1FBRp3_bGcjhQ09-jq5WYh8jnI7LFkGJD7fp9g-7J4cL23lexqhI9ZT3wd4WTJ1VvZ1rZr1G2wu2805W46p6amnJj6SEmt3_YgVXp1sALRvj2/360fx360f", weight: 4 },
+                { name: "Desert Eagle | Blaze", price: 20, img: "https://community.fastly.steamstatic.com/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgposr-kLAtl7PLJTjtO7dGzh7-HnvD8J_XSwGkG65d1juqZp4rz3VLhrhc_azqhJtORdgM4YFvR-1C5wry5gpHqot2XnpVn5DmP/360fx360f", weight: 3 }
+            ]
+        };
+
+        function openCase(price, caseId) {
+            if (balance >= price) {
+                balance -= price;
+                document.getElementById("balance").innerText = "Bakiye: " + balance;
+
+                document.getElementById("open-case-sound").play();
+
+                let caseItemsContainer = document.getElementById("case-items");
+                caseItemsContainer.innerHTML = "";
+
+                let items = cases[caseId];
+
+                let randomSkins = [];
+                for (let i = 0; i < 15; i++) {
+                    let randomItem = weightedRandom(items);
+                    randomSkins.push(randomItem);
+                }
+
+                randomSkins.forEach(item => {
+                    let imgDiv = document.createElement("div");
+                    imgDiv.classList.add("case-item");
+                    imgDiv.style.backgroundImage = `url(${item.img})`;
+                    caseItemsContainer.appendChild(imgDiv);
+                });
+
+                let finalItem = randomSkins[Math.floor(randomSkins.length / 2)];
+
+                document.getElementById("case-items").style.transition = "none";
+                document.getElementById("case-items").style.transform = "translateX(0)";
+                void document.getElementById("case-items").offsetWidth;
+                document.getElementById("case-items").style.transition = "transform 5s ease-out";
+                document.getElementById("case-items").style.transform = `translateX(-${(randomSkins.length / 2) * 100}px)`;
+
+                setTimeout(() => {
+                    document.getElementById("result").innerText = `Kazandın: ${finalItem.name} (${finalItem.price}₺)`;
+                    inventory.push(finalItem);
+                    updateInventory();
+                }, 5000);
+            } else {
+                document.getElementById("result").innerText = "Yetersiz bakiye!";
+            }
+        }
+
+        function weightedRandom(items) {
+            let totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+            let random = Math.floor(Math.random() * totalWeight);
+            let weightSum = 0;
+
+            for (let item of items) {
+                weightSum += item.weight;
+                if (random < weightSum) {
+                    return item;
+                }
+            }
+        }
+
+        function updateInventory() {
+            let inventoryContainer = document.getElementById("inventory");
+            inventoryContainer.innerHTML = "<h2>Envanterim</h2>";
+
+            inventory.forEach(item => {
+                let itemDiv = document.createElement("div");
+                itemDiv.innerHTML = `${item.name} - ${item.price}₺ <button onclick="sellItem('${item.name}')">Sat</button>`;
+                inventoryContainer.appendChild(itemDiv);
+            });
+        }
+
+        function sellItem(itemName) {
+            let itemIndex = inventory.findIndex(item => item.name === itemName);
+            if (itemIndex > -1) {
+                let item = inventory[itemIndex];
+                inventory.splice(itemIndex, 1);
+                balance += item.price;
+                document.getElementById("balance").innerText = "Bakiye: " + balance;
+                updateInventory();
+                alert(item.name + " satıldı!");
+            }
+        }
+    </script>
+</body>
+</html>
